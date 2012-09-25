@@ -4,9 +4,11 @@ listings-dlang-extractor
 This program will extract programs from lstlisting in tex files.
 
 This program is built specifically to compile D programs in lstlisting for
-the book "Learning with D." There is no intention to generalize or make customizable.
+the book "Learning to Program Using D." There is no intention to generalize or make customizable.
 
 The goal is to include the results of a compile and run into the tex file.
+
+License is Boost.
 
 Usage
 -----
