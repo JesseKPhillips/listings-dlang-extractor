@@ -77,8 +77,20 @@ auto executeExample(string[] proglist, string progtxt) {
         scope(exit) f.writeln(r"\end{verbatim}");
         auto options = compileOptions(progtxt);
         auto inputs = inputsForFile(progtxt);
+        auto infoFlags = flagsForFile(progtxt);
         if(compile(proglist, options, f))
             runProgram(proglist, inputs, f);
+        else
+            if(!(infoFlags & FileInfo.fails))
+                stderr.writeln("Compile Failed: ", compileCommand(proglist, options));
+}
+
+enum FileInfo { none, fails = 1 }
+
+auto flagsForFile(R)(R progtxt) {
+    if(!match(progtxt, regex("// Fails:")).empty)
+        return FileInfo.fails;
+    return FileInfo.none;
 }
 
 auto compileOptions(R)(R progtxt) {
@@ -88,11 +100,17 @@ auto compileOptions(R)(R progtxt) {
     return cmd;
 }
 
-auto compile(string[] proglist, string options, File f) {
+auto compileCommand(string[] proglist, string options) {
     string cmd = "dmd " ~ options;
     string compilerOutput = "compiler.out";
 
-    auto make = cmd ~ proglist.join(" ");
+    return cmd ~ proglist.join(" ");
+}
+
+auto compile(string[] proglist, string options, File f) {
+    string compilerOutput = "compiler.out";
+
+    auto make = compileCommand(proglist, options);
     debug writeln(make);
     f.writeln("$ " ~ make);
     auto ret = system(make ~ " > " ~ compilerOutput ~ " 2>&1");
@@ -273,12 +291,18 @@ unittest {
     }.strip()));
 }
 
+/**
+ * Output program text for lex file.
+ *
+ * Skips commands.
+ */
 auto outputProgram(R)(R progtxt) {
     write(r"\begin{lstlisting}");
     foreach(line; progtxt.splitLines()) {
-        if(match(line.strip(), "// Input: ")) {
+        if(match(line.strip(), "// Input: "))
             continue;
-        }
+        if(match(line.strip(), "// Fails:"))
+            continue;
         line = line.replace(inputReg, "");
         writeln(line);
     }
