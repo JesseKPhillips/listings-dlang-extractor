@@ -78,6 +78,8 @@ auto executeExample(string[] proglist, string progtxt) {
         auto options = compileOptions(progtxt);
         auto inputs = inputsForFile(progtxt);
         auto infoFlags = flagsForFile(progtxt);
+        if(infoFlags & FileInfo.skip)
+            return;
         if(compile(proglist, options, f))
             runProgram(proglist, inputs, f);
         else
@@ -85,11 +87,13 @@ auto executeExample(string[] proglist, string progtxt) {
                 stderr.writeln("Compile Failed: ", compileCommand(proglist, options));
 }
 
-enum FileInfo { none, fails = 1 }
+enum FileInfo { none, fails = 1, skip = 2 }
 
 auto flagsForFile(R)(R progtxt) {
     if(!match(progtxt, regex("// Fails:")).empty)
         return FileInfo.fails;
+    if(!match(progtxt, regex("// Skip:")).empty)
+        return FileInfo.skip;
     return FileInfo.none;
 }
 
@@ -304,6 +308,8 @@ auto outputProgram(R)(R progtxt) {
         if(match(line.strip(), "// Input: "))
             continue;
         if(match(line.strip(), "// Fails:"))
+            continue;
+        if(match(line.strip(), "// Skip:"))
             continue;
         line = line.replace(inputReg, "");
         writeln(line);
