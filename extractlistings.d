@@ -101,6 +101,8 @@ auto compileOptions(R)(R progtxt) {
     string cmd;
     if(!match(progtxt, regex("unittest")).empty)
         cmd ~= "-unittest ";
+    if(!match(progtxt, regex("debug")).empty)
+        cmd ~= "-debug ";
     return cmd;
 }
 
