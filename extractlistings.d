@@ -141,8 +141,10 @@ auto runProgram(string[] proglist, string[] inputs, File f) {
     if(!inputs.empty) {
         auto inFile = File(inputFile, "w");
         scope(exit) if(exists(inputFile)) remove(inputFile);
-        foreach(input; inputs)
+        foreach(input; inputs) {
             inFile.writeln(input);
+        }
+        inFile.close();
         debug writeln(
                format(run ~ "< %s 2>&1 | tee %s", inputFile, programOutput));
         executeShell(format(run ~ "< %s > %s 2>&1", inputFile, programOutput));
