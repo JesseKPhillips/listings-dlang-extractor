@@ -113,7 +113,7 @@ auto compile(string[] proglist, string options, File f) {
     auto make = compileCommand(proglist, options);
     debug writeln(make);
     f.writeln("$ " ~ make);
-    auto ret = system(make ~ " > " ~ compilerOutput ~ " 2>&1");
+    auto ret = executeShell(make ~ " > " ~ compilerOutput ~ " 2>&1");
     auto compilerText = readText(compilerOutput);
     scope(exit) remove(compilerOutput);
 
@@ -121,7 +121,7 @@ auto compile(string[] proglist, string options, File f) {
     if(!compilerText.empty)
         breakLines(compilerText, f);
     // No need to continue if compilation failed
-    if(ret != 0) {
+    if(ret.status != 0) {
         debug {
             writeln("Compile Failed");
             writeln(make ~ " > " ~ compilerOutput ~ " 2>&1");
@@ -145,10 +145,10 @@ auto runProgram(string[] proglist, string[] inputs, File f) {
             inFile.writeln(input);
         debug writeln(
                format(run ~ "< %s 2>&1 | tee %s", inputFile, programOutput));
-        system(format(run ~ "< %s > %s 2>&1", inputFile, programOutput));
+        executeShell(format(run ~ "< %s > %s 2>&1", inputFile, programOutput));
     } else {
         debug writeln(run ~ " 2>&1 | tee " ~ programOutput);
-        system(run ~ " > " ~ programOutput ~ " 2>&1");
+        executeShell(run ~ " > " ~ programOutput ~ " 2>&1");
     }
     scope(exit) remove(programOutput);
     auto outText = readText(programOutput);
@@ -261,7 +261,7 @@ unittest {
     import std.stdio;
     }.strip()));
 
-    system("touch example_triangle.d");
+    executeShell("touch example_triangle.d");
     scope(exit) std.file.remove("example_triangle.d");
     assert(["example_triangle.d"] == importFiles(q{
     module hello;
