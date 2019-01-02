@@ -17,6 +17,7 @@ import std.range;
 import std.regex;
 import std.stdio;
 import std.string;
+import std.experimental.logger;
 
 int exampleCount;
 
@@ -26,6 +27,13 @@ void main(string[] args) {
     int compileOnly;
     if(args.length == 2)
         compileOnly = to!int(args[1]);
+
+    if(exists("issues.log")) std.file.remove("issues.log");
+    auto ml = new MultiLogger();
+    ml.insertLogger("console", sharedLog);
+    debug ml.insertLogger("file", new FileLogger("issues.log", LogLevel.all));
+    else ml.insertLogger("file", new FileLogger("issues.log", LogLevel.error));
+    sharedLog = ml;
 
     string file;
     foreach(line; stdin.byChunk(4096))
@@ -84,7 +92,7 @@ auto executeExample(string[] proglist, string progtxt) {
             runProgram(proglist, inputs, f);
         else
             if(!(infoFlags & FileInfo.fails))
-                stderr.writeln("Compile Failed: ", compileCommand(proglist, options));
+                error("Compile Failed: ", compileCommand(proglist, options));
 }
 
 enum FileInfo { none, fails = 1, skip = 2 }
@@ -117,21 +125,20 @@ auto compile(string[] proglist, string options, File f) {
     string compilerOutput = "compiler.out";
 
     auto make = compileCommand(proglist, options);
-    debug writeln(make);
+    debug info(make);
     f.writeln("$ " ~ make);
     auto ret = executeShell(make ~ " > " ~ compilerOutput ~ " 2>&1");
     auto compilerText = readText(compilerOutput);
     scope(exit) remove(compilerOutput);
 
-    debug if(compilerText) writeln(compilerText);
+    debug if(compilerText) info(compilerText);
     if(!compilerText.empty)
         breakLines(compilerText, f);
     // No need to continue if compilation failed
     if(ret.status != 0) {
         debug {
-            writeln("Compile Failed");
-            writeln(make ~ " > " ~ compilerOutput ~ " 2>&1");
-            writeln();
+            error(make ~ " > " ~ compilerOutput ~ " 2>&1");
+            info(compilerText);
         }
         return false;
     }
@@ -151,11 +158,11 @@ auto runProgram(string[] proglist, string[] inputs, File f) {
             inFile.writeln(input);
         }
         inFile.close();
-        debug writeln(
+        debug info(
                format(run ~ "< %s 2>&1 | tee %s", inputFile, programOutput));
         executeShell(format(run ~ "< %s > %s 2>&1", inputFile, programOutput));
     } else {
-        debug writeln(run ~ " 2>&1 | tee " ~ programOutput);
+        debug info(run ~ " 2>&1 | tee " ~ programOutput);
         executeShell(run ~ " > " ~ programOutput ~ " 2>&1");
     }
     scope(exit) remove(programOutput);
@@ -165,7 +172,7 @@ auto runProgram(string[] proglist, string[] inputs, File f) {
         outText = outText.replace(inputReg, input ~ "\n");
     }
 
-    debug if(progText) writeln(outText);
+    debug if(outText) info(outText);
     f.writeln("$ " ~ run);
     if(!outText.empty)
         breakLines(outText.strip(), f);
